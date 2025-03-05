@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X1S Pro Prediction</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Orbitron', sans-serif;
+      color: #00ff00;
+    }
+
+    .container {
+      text-align: center;
+      background: #000000;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 50px #107912;
+      border: 3px solid #1C3619;
+      width: 380px;
+    }
+
+    .title {
+      background: #1C3619;
+      padding: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 5px;
+      text-shadow: 0 0 15px #00ff00;
+      box-shadow: 0 0 20px #1C3619;
+    }
+
+    .info-box {
+      background: #1C3619;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 5px;
+      font-size: 20px;
+      text-shadow: 0 0 15px #00ff00;
+      box-shadow: 0 0 15px #1C3619;
+      font-weight: bold;
+    }
+
+    .result-box {
+      background: #0F350E;
+      padding: 15px;
+      font-size: 22px;
+      border-radius: 5px;
+      margin: 15px 0;
+      box-shadow: 0 0 20px #0F350E;
+    }
+
+    .big { background: #107912; color: white; }
+    .small { background: #1C3619; color: white; }
+
+    .win { color: #00ff00; font-weight: bold; }
+    .loss { color: white; font-weight: bold; }
+    .pending { color: yellow; font-weight: bold; }
+
+    .telegram {
+      background: #1C3619;
+      padding: 10px;
+      font-size: 18px;
+      border-radius: 5px;
+      text-shadow: 0 0 10px #00ff00;
+      box-shadow: 0 0 20px #1C3619;
+      cursor: pointer;
+      margin-top: 15px;
+      display: inline-block;
+      transition: 0.3s;
+    }
+
+    .telegram a {
+      text-decoration: none;
+      color: #00ff00;
+    }
+
+    .history {
+      margin-top: 20px;
+      background: #0F350E;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #0F350E;
+      width: 350px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px;
+      font-size: 16px;
+      border-bottom: 1px solid #107912;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">X1S PRO</div>
+    <div class="info-box" id="period1m">Loading...</div>
+    <div class="info-box" id="timer1m">00 : 60</div>
+    <div class="result-box" id="resultDisplay">Loading...</div>
+    <div class="telegram">
+      <a href="https://t.me/+dY9AssurjJ1hOWJl" target="_blank">🔥 Join Telegram Channel 🔥</a>
+    </div>
+    <div class="history">
+      <div class="history-item">
+        <span>Period</span>
+        <span>Result</span>
+        <span>Status</span>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <script>
+    // Predefined predictions array (simulating user predictions)
+    const resultsPattern = ["SMALL", "BIG", "SMALL", "BIG", "SMALL", "SMALL", "BIG", "SMALL", "BIG", "BIG", "SMALL", "BIG", "SMALL", "SMALL"];
+    let currentPeriodIndex = 0;
+    let historyData = [];
+    let lastPeriod = "";
+
+    // Update the period number and timer every second
+    function updatePeriodAndTimer() {
+      const now = new Date();
+      const seconds = now.getUTCSeconds();
+      const remainingSeconds = 60 - seconds;
+      const minutes = now.getUTCMinutes();
+      const totalMinutes = now.getUTCHours() * 60 + minutes;
+
+      // Generate period number in the format: YYYYMMDD1000 + (10001 + totalMinutes)
+      const periodElement = document.getElementById("period1m");
+      const periodNumber = `${now.getUTCFullYear()}${(now.getUTCMonth() + 1).toString().padStart(2, "0")}${now.getUTCDate().toString().padStart(2, "0")}1000${(10001 + totalMinutes).toString()}`;
+      periodElement.textContent = periodNumber;
+
+      const timerElement = document.getElementById("timer1m");
+      timerElement.textContent = `00 : ${remainingSeconds.toString().padStart(2, "0")}`;
+
+      // When a new period starts or during a mid-period update, display a new result.
+      if (remainingSeconds === 59 || remainingSeconds === 30) {
+        // Avoid duplicate processing for the same period
+        if (lastPeriod !== periodNumber || remainingSeconds === 30) {
+          displayResult(periodNumber);
+          lastPeriod = periodNumber;
+        }
+      }
+    }
+
+    // Display the prediction result and add an entry to the history table.
+    function displayResult(periodNumber) {
+      const resultDisplay = document.getElementById("resultDisplay");
+      const currentResult = resultsPattern[currentPeriodIndex];
+
+      resultDisplay.textContent = currentResult;
+      resultDisplay.className = `result-box ${currentResult.toLowerCase()}`;
+
+      // Add a new history record with default "Pending" status
+      historyData.unshift({ period: periodNumber, result: currentResult, status: "Pending", statusClass: "pending" });
+      updateHistory();
+
+      // Check the result against API data
+      checkWinOrLoss(periodNumber, currentResult);
+
+      // Cycle through the predictions
+      currentPeriodIndex = (currentPeriodIndex + 1) % resultsPattern.length;
+    }
+
+    // Fetch API data, match the last three digits of the period number to the API's issueNumber,
+    // and update the corresponding history record to WIN or LOSS.
+    function checkWinOrLoss(periodNumber, predicted) {
+      fetch("https://devpro.great-site.net/Dev1Min.php")
+        .then(response => response.json())
+        .then(apiData => {
+          const list = apiData.data.list;
+          // Get the last three digits of the current period number.
+          const targetSuffix = periodNumber.slice(-3);
+          // Find an API record where the issueNumber ends with these three digits.
+          const match = list.find(item => item.issueNumber.endsWith(targetSuffix));
+          let historyItem = historyData.find(item => item.period === periodNumber);
+          
+          if (match) {
+            // Convert the API number from string to integer.
+            let apiNumber = parseInt(match.number, 10);
+            // Check prediction: if "BIG" then API number must be >= 5; if "SMALL" then <= 4.
+            if ((predicted === "BIG" && apiNumber >= 5) || (predicted === "SMALL" && apiNumber <= 4)) {
+              historyItem.status = "Win";
+              historyItem.statusClass = "win";
+            } else {
+              historyItem.status = "Loss";
+              historyItem.statusClass = "loss";
+            }
+          } else {
+            // No matching API data found; keep the status as "Pending".
+            historyItem.status = "Pending";
+            historyItem.statusClass = "pending";
+          }
+          updateHistory();
+        })
+        .catch(error => {
+          console.error("API Error:", error);
+        });
+    }
+
+    // Update the History Table with the latest historyData
+    function updateHistory() {
+      const historyList = document.getElementById("historyList");
+      historyList.innerHTML = "";
+      historyData.slice(0, 10).forEach(item => {
+        historyList.innerHTML += `<div class="history-item">
+          <span>${item.period}</span>
+          <span>${item.result}</span>
+          <span class="${item.statusClass}">${item.status}</span>
+        </div>`;
+      });
+    }
+
+    // Start the timer to update every second
+    setInterval(updatePeriodAndTimer, 1000);
+  </script>
+</body>
+</html>
