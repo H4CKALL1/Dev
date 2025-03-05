@@ -71,7 +71,7 @@
     }
 
     function checkWinOrLoss(periodNumber, predicted) {
-      fetch("https://devpro.great-site.net/Dev1Min.php")
+      fetch("https://devpro.great-site.net/DevApi.php")
         .then(response => response.json())
         .then(apiData => {
           const list = apiData.data.list;
